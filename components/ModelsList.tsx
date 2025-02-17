@@ -3,13 +3,17 @@ import { Link, router } from "expo-router";
 import * as FileSystem from 'expo-file-system';
 import { FlatList, TouchableOpacity, View, Text, StyleSheet, Alert } from "react-native";
 
+const CHATS_DIRECTORY = `${FileSystem.documentDirectory}chats/`;
+
 interface ModelListProps {
     models: { name: string; size: string; path: string }[];
 }
+
 export default function ModelsList({models}: ModelListProps) {
     const deleteModel = async (model: { name: string; size: string; path: string }) => {
       try {
         await FileSystem.deleteAsync(model.path);
+        await FileSystem.deleteAsync(CHATS_DIRECTORY + model.name + '_chat.json');
         Alert.alert('Éxito', 'Modelo eliminado correctamente');
       } catch (error) {
         Alert.alert('Error', 'No se pudo eliminar el modelo');
@@ -47,7 +51,7 @@ export default function ModelsList({models}: ModelListProps) {
               <Text style={styles.modelName}>{item.name}</Text>
               <Text style={styles.modelSize}>{item.size}</Text>
               <TouchableOpacity onPress={() => confirmDeleteModel(item)} style={styles.deleteButtonContainer}>
-              <AntDesign name="close" size={20} color="red" style={styles.fileIcon} />
+                <AntDesign name="close" size={20} color="red" style={styles.fileIcon} />
               </TouchableOpacity>
             </View>
           </View>

@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system';
 import {router, useLocalSearchParams } from "expo-router";
 import { loadModel } from "@/scripts/llamaInference";
 import { LlamaContext } from "llama.rn";
-import { Ionicons } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 
 export default function ChatScreen(){
   const [messages, setMessages] = useState<Message[]>([]);
@@ -13,6 +13,7 @@ export default function ChatScreen(){
   const [context, setContext] = useState<LlamaContext | null | undefined>(null);
   const stopWords = ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>', '<|im_end|>', '<|EOT|>', '<|END_OF_TURN_TOKEN|>', '<|end_of_turn|>', '<|endoftext|>']
   const CHATS_DIRECTORY = `${FileSystem.documentDirectory}chats/`;
+  const CHAT_FILE_PATH = CHATS_DIRECTORY + params.model + '_chat.json';
 
   interface Message {
     id: number;
@@ -20,34 +21,21 @@ export default function ChatScreen(){
     content: string;
   }
 
-  useEffect(() => { createChatDirectory(), loadContext(), loadChat()}, [])
+  useEffect(() => { loadChat(),loadContext() }, [])
 
   const loadContext = async () => {
     const context = await loadModel(`${FileSystem.documentDirectory}models/` + params.model);
     setContext(context);
   };
 
-  const createChatDirectory = async () => {
-    try {
-      const chatsDir = CHATS_DIRECTORY + params.model + '_chat' + '.json';
-      const chatsExists = await FileSystem.getInfoAsync(chatsDir);
-      
-      if (!chatsExists.exists) {
-        await FileSystem.makeDirectoryAsync(chatsDir);
-      }
-    } catch (error) {
-      console.error('Error creating chat directory:', error);
-    }
-  }
-
   const loadChat = async () => {
     try{
-      const chatsDir = CHATS_DIRECTORY + params.model;
-      const chatsExists = await FileSystem.getInfoAsync(chatsDir);
+      const chatExists = await FileSystem.getInfoAsync(CHAT_FILE_PATH);
       
-      if (chatsExists.exists) {
-        const chatContent = await FileSystem.readAsStringAsync(chatsDir);
+      if (chatExists.exists) {
+        const chatContent = await FileSystem.readAsStringAsync(CHAT_FILE_PATH);
         setMessages(JSON.parse(chatContent));
+        console.log('Chat loaded:', chatContent);
       }
     } catch (error) {
       console.error('Error loading chat:', error);
@@ -56,12 +44,17 @@ export default function ChatScreen(){
 
   const saveChat = async () => {
     try {
-      const chatPath = CHATS_DIRECTORY + params.model;
+      const dirInfo = await FileSystem.getInfoAsync(CHATS_DIRECTORY);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(CHATS_DIRECTORY, { intermediates: true });
+      }
+  
       await FileSystem.writeAsStringAsync(
-        chatPath,
+        CHAT_FILE_PATH,
         JSON.stringify(messages),
         { encoding: FileSystem.EncodingType.UTF8 }
       );
+      console.log('Chat saved:', CHAT_FILE_PATH);
     } catch (error) {
       console.error('Error saving chat:', error);
     }
@@ -69,12 +62,16 @@ export default function ChatScreen(){
   
   const deleteChat = async () => {
     try {
-      const chatPath = CHATS_DIRECTORY + params.model;
-      await FileSystem.deleteAsync(chatPath);
+      await FileSystem.writeAsStringAsync(
+        CHAT_FILE_PATH,
+        ''
+      );
+      setMessages([]);
+      console.log('Chat deleted:', CHAT_FILE_PATH);
     } catch (error) {
       console.error('Error deleting chat:', error);
     }
-  }
+  };
 
   const sendModelMessage = async (messageId: number) => {
     if (!context) {
@@ -134,15 +131,28 @@ export default function ChatScreen(){
   const backButtonHandle = async () => {
     await saveChat();
     router.push("/");
-  }
+  };
 
   return (
-    <View style={styles.container}>
+    /* <View style={styles.container}>
       <View style={styles.chatHeader}>
         <TouchableOpacity style={styles.backButton} onPress={backButtonHandle}>
             <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.chatHeaderText}>{params.model}</Text>
+        <TouchableOpacity  style={styles.chatHeaderDelete} onPress={deleteChat}>
+                <AntDesign name="close" size={20} color="red"/>
+        </TouchableOpacity>
+      </View> */
+      <View style={styles.container}>        
+        <View style={styles.chatHeader}>
+        <TouchableOpacity onPress={backButtonHandle} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+        </TouchableOpacity>
+          <Text style={styles.chatHeaderText}>{params.model}</Text>
+        <TouchableOpacity onPress={deleteChat} style={styles.chatHeaderDelete}>
+          <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+        </TouchableOpacity>
       </View>
       
       <FlatList
@@ -192,6 +202,11 @@ const styles = StyleSheet.create({
     chatHeaderText: {
       fontSize: 18,
       fontWeight: '600',
+      flex: 1,
+    },
+    chatHeaderDelete: {
+      padding: 8,
+      marginLeft: 16,
     },
     chatList: {
       flex: 1,
