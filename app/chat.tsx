@@ -1,16 +1,18 @@
-import { StyleSheet, View, TouchableOpacity, Text, FlatList, TextInput, ActivityIndicator } from "react-native";
-import React, { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, View, TouchableOpacity, Text, FlatList, TextInput, ActivityIndicator, Alert } from "react-native";
+import React, { useEffect, useState } from 'react';
 import * as FileSystem from 'expo-file-system';
 import {router, useLocalSearchParams } from "expo-router";
 import { loadModel } from "@/scripts/llamaInference";
 import { LlamaContext } from "llama.rn";
-import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ChatScreen(){
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const params = useLocalSearchParams();
   const [context, setContext] = useState<LlamaContext | null | undefined>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const params = useLocalSearchParams();
+
   const stopWords = ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>', '<|im_end|>', '<|EOT|>', '<|END_OF_TURN_TOKEN|>', '<|end_of_turn|>', '<|endoftext|>']
   const CHATS_DIRECTORY = `${FileSystem.documentDirectory}chats/`;
   const CHAT_FILE_PATH = CHATS_DIRECTORY + params.model + '_chat.json';
@@ -60,6 +62,25 @@ export default function ChatScreen(){
     }
   };
   
+  const confirmDeleteChat = () => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete the current chat?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteChat(),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+  
   const deleteChat = async () => {
     try {
       await FileSystem.writeAsStringAsync(
@@ -74,37 +95,42 @@ export default function ChatScreen(){
   };
 
   const sendModelMessage = async (messageId: number) => {
-    if (!context) {
-      console.error('Model not loaded yet.');
-      return;
-    }
-    
-    let partialMessage = '';
-    const prompt = messages
-      .map(msg => `${msg.role}: ${msg.content}`)
-      .join('\n') + `\nuser: ${inputMessage}\nassistant:`;
+    try{
+      if (!context) {
+        console.error('Model not loaded yet.');
+        return;
+      }
+      
+      let partialMessage = '';
+      setIsCompleting(true);
+      const prompt = messages
+        .map(msg => `${msg.role}: ${msg.content}`)
+        .join('\n') + `\nuser: ${inputMessage}\nassistant:`;
 
-    const textResult = await context.completion(
-      {
-        prompt: `This is a conversation between user and assistant, a friendly chatbot. Respond in simple markdown.\n\n${prompt}`,
-        n_predict: 50,
-        stop: [...stopWords, 'user:', 'assistant:'],
-        // ...other params
-      },
-      (data) => {
-        const { token } = data;
-        partialMessage += token;
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId ? { ...msg, content: partialMessage } : msg
-        ));
-        console.log('Partial completion:', token);
+      const textResult = await context.completion(
+        {
+          prompt: `This is a conversation between user and assistant, a friendly chatbot. Respond in simple markdown.\n\n${prompt}`,
+          n_predict: 500,
+          stop: [...stopWords, 'user:', 'assistant:'],
+          // ...other params
         },
-    );
-    
-    console.log('Result:', textResult.text)
-    console.log('Timings:', textResult.timings)
+        (data) => {
+          const { token } = data;
+          partialMessage += token;
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId ? { ...msg, content: partialMessage } : msg
+          ));
+          console.log('Partial completion:', token);
+          },
+      );
+      setIsCompleting(false);
+      console.log('Result:', textResult.text)
+      console.log('Timings:', textResult.timings)
 
-    return textResult.text;
+      return textResult.text;
+    }catch(error){
+      console.error('Error sending message, check your model downloaded.');
+    }
   };
 
   const sendMessage = async () => {
@@ -128,30 +154,25 @@ export default function ChatScreen(){
     await sendModelMessage(response.id);
   };
   
+  const stopModelMessage = async () => {
+    await context?.stopCompletion()
+    setMessages(prevMessages => prevMessages.slice(0, -1))
+  }
+
   const backButtonHandle = async () => {
     await saveChat();
     router.push("/");
   };
 
   return (
-    /* <View style={styles.container}>
-      <View style={styles.chatHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={backButtonHandle}>
-            <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.chatHeaderText}>{params.model}</Text>
-        <TouchableOpacity  style={styles.chatHeaderDelete} onPress={deleteChat}>
-                <AntDesign name="close" size={20} color="red"/>
-        </TouchableOpacity>
-      </View> */
       <View style={styles.container}>        
         <View style={styles.chatHeader}>
         <TouchableOpacity onPress={backButtonHandle} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
           <Text style={styles.chatHeaderText}>{params.model}</Text>
-        <TouchableOpacity onPress={deleteChat} style={styles.chatHeaderDelete}>
-          <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+        <TouchableOpacity onPress={confirmDeleteChat} style={styles.chatHeaderDelete}>
+          <Text style={{ color: "#ff3b30", fontSize: 16, textAlign: "center"}}>Delete chat</Text>
         </TouchableOpacity>
       </View>
       
@@ -174,10 +195,15 @@ export default function ChatScreen(){
           onChangeText={setInputMessage}
           placeholder="Enter your message..."
           multiline/>
-        <TouchableOpacity onPress={sendMessage} style={styles.sendButton} disabled={context === null}>
-          {context ? (<Ionicons name="send" size={24} color="#007AFF" />) : 
-                     (<ActivityIndicator color="black" />)}
-        </TouchableOpacity>
+         {isCompleting ?(
+          <TouchableOpacity onPress={stopModelMessage} style={styles.sendButton}>
+            <Ionicons name="stop" size={24} color="black" />
+          </TouchableOpacity>):
+         
+          (<TouchableOpacity onPress={sendMessage} style={styles.sendButton} disabled={context === null}>
+            {context ? (<Ionicons name="send" size={24} color="#007AFF" />) : 
+                      (<ActivityIndicator color="black" />)}
+          </TouchableOpacity>)}
       </View>
     </View>
   );
@@ -205,8 +231,8 @@ const styles = StyleSheet.create({
       flex: 1,
     },
     chatHeaderDelete: {
-      padding: 8,
-      marginLeft: 16,
+      padding: 5,
+      marginLeft: 10,
     },
     chatList: {
       flex: 1,

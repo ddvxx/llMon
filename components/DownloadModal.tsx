@@ -31,10 +31,55 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
     };
 
     const openHuggingFace = () => {
-        Linking.openURL('https://huggingface.co/models');
+        Linking.openURL('https://huggingface.co/models?library=gguf');
+    };
+
+    const checkFileExists = async (modelsDir: string, fileName: string) => {
+      try {
+        const dirInfo = await FileSystem.getInfoAsync(modelsDir);
+        if (dirInfo.exists) {
+          const files = await FileSystem.readDirectoryAsync(modelsDir);
+          if (files.includes(fileName)) {
+            Alert.alert('Error', 'A model with the same name already exists');
+            return true;
+          }
+        } else {
+          await FileSystem.makeDirectoryAsync(modelsDir, { intermediates: true });
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Could not check existing models. Please try again.');
+        return true;
+      }
+      return false;
+    };
+    
+    const checkFileSize = async (url: string) => {
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) {
+          const contentLength = response.headers.get('Content-Length');
+          if (contentLength) {
+            const fileSize = parseInt(contentLength, 10);
+            const freeSpace = await FileSystem.getFreeDiskStorageAsync();
+            if (fileSize > freeSpace) {
+              Alert.alert('Error', 'Not enough storage space to download the model');
+              return false;
+            }
+            return true;
+          }
+        }
+        Alert.alert('Error', 'Could not retrieve file size');
+        return false;
+      } catch (error) {
+        Alert.alert('Error', 'Could not check file size. Please try again.');
+        return false;
+      }
     };
 
     const downloadModel = async () => {
+      const fileName = downloadUrl.split('/').pop();
+      const modelsDir = `${FileSystem.documentDirectory}models`;
+      const fileUri = `${modelsDir}/${fileName}`;
 
       if (!downloadUrl.trim()) {
         Alert.alert('Error', 'Please, enter a valid URL');
@@ -46,10 +91,18 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
         return;
       }
 
+      if (!fileName) {
+        Alert.alert('Error', 'Invalid file name');
+        return;
+      }
+      
+      const fileExists = await checkFileExists(modelsDir, fileName);
+      if (fileExists) return;
+      
+      const canDownload = await checkFileSize(downloadUrl);
+      if (!canDownload) return;
+
       setIsDownloading(true);
-      const fileName = downloadUrl.split('/').pop();
-      const modelsDir = `${FileSystem.documentDirectory}models`;
-      const fileUri = `${modelsDir}/${fileName}`;
 
       try {
         const downloadResumable = FileSystem.createDownloadResumable(downloadUrl, fileUri, {},
@@ -60,6 +113,7 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
         );
 
         setDownloadable(downloadResumable);
+        
         const downloadResult = await downloadResumable.downloadAsync();
         if (downloadResult && downloadResult.uri) {
           Alert.alert('Done', 'Model downloaded successfully');

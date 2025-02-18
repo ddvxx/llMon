@@ -51,7 +51,7 @@ export default function ModelsList({models}: ModelListProps) {
               <Text style={styles.modelName}>{item.name}</Text>
               <Text style={styles.modelSize}>{item.size}</Text>
               <TouchableOpacity onPress={() => confirmDeleteModel(item)} style={styles.deleteButtonContainer}>
-                <AntDesign name="close" size={20} color="red" style={styles.fileIcon} />
+                <AntDesign name="close" size={20} color="#ff3b30" style={styles.fileIcon} />
               </TouchableOpacity>
             </View>
           </View>
