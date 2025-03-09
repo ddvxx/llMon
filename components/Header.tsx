@@ -1,4 +1,4 @@
-import { AntDesign } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, Image, TouchableOpacity, Linking } from "react-native";
 
 export default function Header() {
@@ -12,8 +12,8 @@ export default function Header() {
             <TouchableOpacity 
             style={styles.donateButton}
             onPress={() => Linking.openURL('https://paypal.me/davexpert')}>
-                <AntDesign name="heart" size={16} color="#FF3B30" />
-                <Text style={styles.donateText}>Apoya este proyecto</Text>
+                <Ionicons name="heart" size={20} color="#FF3B30" />
+                <Text style={styles.donateText}>Support this project</Text>
             </TouchableOpacity>
         </View>
     )

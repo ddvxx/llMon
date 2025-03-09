@@ -1,5 +1,5 @@
 import { AntDesign } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, TextInput, ActivityIndicator, Linking, StyleSheet, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
@@ -53,9 +53,13 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
       return false;
     };
     
+    /* With this function we check if the device have enough storage available for the
+    model download. */
     const checkFileSize = async (url: string) => {
       try {
+        /* Making a fetch to the url provided, we can check the size of the file*/
         const response = await fetch(url, { method: 'HEAD' });
+
         if (response.ok) {
           const contentLength = response.headers.get('Content-Length');
           if (contentLength) {
@@ -76,7 +80,9 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
       }
     };
 
+    /* Handle the model download. */
     const downloadModel = async () => {
+      /* Getting the name of the file, extracting the last component of the URL. */
       const fileName = downloadUrl.split('/').pop();
       const modelsDir = `${FileSystem.documentDirectory}models`;
       const fileUri = `${modelsDir}/${fileName}`;
@@ -85,7 +91,9 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
         Alert.alert('Error', 'Please, enter a valid URL');
         return;
       }
-
+      
+      /* At the current moment the app doesnt allow models
+      in other format than in GGUF. */
       if (!downloadUrl.toLowerCase().endsWith('.gguf')) {
         Alert.alert('Error', 'The URL must include a .gguf Model file');
         return;
@@ -96,6 +104,8 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
         return;
       }
       
+      /* The app can continue with the download if the model downloaded
+      is not downloaded yet and if there is storage enough to save it. */
       const fileExists = await checkFileExists(modelsDir, fileName);
       if (fileExists) return;
       
@@ -105,25 +115,27 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
       setIsDownloading(true);
 
       try {
+        /* Creating a resumable object, we obtain the ability to stop the download
+        when ever the user want. Additionally, we can get the progress, extracting
+        information from the object returned. */
         const downloadResumable = FileSystem.createDownloadResumable(downloadUrl, fileUri, {},
           (downloadProgress) => {
             const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
             setDownloadProgress(progress);
           }
         );
-
         setDownloadable(downloadResumable);
         
         const downloadResult = await downloadResumable.downloadAsync();
         if (downloadResult && downloadResult.uri) {
           Alert.alert('Done', 'Model downloaded successfully');
-
           setDownloadUrl('');
           loadExistingModels();
           onClose();
         }
       } catch (error) {
         Alert.alert('Error', 'Could not download the model. Check the URL or conection and try again');
+
       } finally {
         setIsDownloading(false);
         setDownloadProgress(0);
@@ -156,7 +168,8 @@ export default function DownloadModal({visible, onClose, loadExistingModels}: Do
               autoCapitalize="none"
               autoCorrect={false}
               numberOfLines={1}/>
-
+            {/* Once the model is downloading, we expose the progress thanks to Progress components
+            and downloadProgress object. */}
             {isDownloading && (
               <View style={styles.progressContainer}>
                 <Progress progress={downloadProgress} />

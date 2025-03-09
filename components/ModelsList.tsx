@@ -1,5 +1,5 @@
-import { AntDesign } from "@expo/vector-icons";
-import { Link, router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import * as FileSystem from 'expo-file-system';
 import { FlatList, TouchableOpacity, View, Text, StyleSheet, Alert } from "react-native";
 
@@ -10,6 +10,7 @@ interface ModelListProps {
 }
 
 export default function ModelsList({models}: ModelListProps) {
+    /* Handle the deletion of the models and their chats in JSON saved. */
     const deleteModel = async (model: { name: string; size: string; path: string }) => {
       try {
         await FileSystem.deleteAsync(model.path);
@@ -39,6 +40,8 @@ export default function ModelsList({models}: ModelListProps) {
       );
     };
     
+    /* We use the router method in this function to make able to the app to 
+    extract information of the model with the useParams hook in other views. */
     const handleModelSelect = (model: { name: string; size: string; path: string }) => {
         router.push(`/chat?model=${model.name}`);
     };
@@ -46,12 +49,12 @@ export default function ModelsList({models}: ModelListProps) {
     const renderItem = ({ item }: { item: { name: string; size: string; path: string } }) => (
         <TouchableOpacity onPress={() => handleModelSelect(item)}>
           <View style={styles.modelItem}>
-            <AntDesign name="file1" size={24} color="#666" style={styles.fileIcon} />
+            <Ionicons name="document-outline" size={30} color="#666" style={styles.fileIcon} />
             <View style={styles.modelInfo}>
               <Text style={styles.modelName}>{item.name}</Text>
               <Text style={styles.modelSize}>{item.size}</Text>
               <TouchableOpacity onPress={() => confirmDeleteModel(item)} style={styles.deleteButtonContainer}>
-                <AntDesign name="close" size={20} color="#ff3b30" style={styles.fileIcon} />
+                <Ionicons name="close" size={30} color="#ff3b30" style={styles.fileIcon} />
               </TouchableOpacity>
             </View>
           </View>

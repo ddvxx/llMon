@@ -6,17 +6,26 @@ import {
   Alert,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/Header';
 import DownloadModal from '@/components/DownloadModal';
 import ModelsList from '@/components/ModelsList';
+import HelpModal from '@/components/HelpModal';
 
 export default function ModelManagerScreen(){
   const [models, setModels] = useState<{ name: string; size: string; path: string }[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [downloadModalVisible, setDownloadModalVisible] = useState(false);
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
+
+  /* Every time we open this view, we have to load the models downloaded locally.
+  In addition, every time the models array changes, we have to update it. */
+  useEffect(() => {
+    loadExistingModels();
+  }, [models]);
 
   const loadExistingModels = async () => {
     try {
+      /* Root folder of the app itself. */
       const modelsDir = `${FileSystem.documentDirectory}models`;
       const dirExists = await FileSystem.getInfoAsync(modelsDir);
       
@@ -24,10 +33,12 @@ export default function ModelManagerScreen(){
         await FileSystem.makeDirectoryAsync(modelsDir);
         return;
       }
-
+      
+      /* Inside the models folder, we only want to load the .gguf extension. */
       const files = await FileSystem.readDirectoryAsync(modelsDir);
       const ggufFiles = files.filter(file => file.endsWith('.gguf'));
       
+      /* We extract the model details for the later representation on the list. */
       const modelDetails = await Promise.all(
         ggufFiles.map(async (file) => {
           const fileInfo = await FileSystem.getInfoAsync(`${modelsDir}/${file}`);
@@ -38,33 +49,34 @@ export default function ModelManagerScreen(){
           };
         })
       );
-
       setModels(modelDetails);
+
     } catch (error) {
       Alert.alert('Error', 'Could not load existing models');
     }
   };
 
-  useEffect(() => {
-    loadExistingModels();
-  }, [models]);
-
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.helpButton}
+        onPress={() => setHelpModalVisible(true)}>
+        <Ionicons name="help-circle" size={50} color="#007AFF" />
+      </TouchableOpacity>
       <Header/>
       <ModelsList models={models}/>
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
-        <AntDesign name="plus" size={24} color="white" />
+        onPress={() => setDownloadModalVisible(true)}>
+        <Ionicons name="add" size={50} color="white" />
       </TouchableOpacity>
-
+      <HelpModal
+        visible={helpModalVisible}
+        onClose={() => setHelpModalVisible(false)}/>
       <DownloadModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        loadExistingModels={loadExistingModels}
-      />
+        visible={downloadModalVisible}
+        onClose={() => setDownloadModalVisible(false)}
+        loadExistingModels={loadExistingModels}/>
     </View>
   );
 };
@@ -79,9 +91,9 @@ const styles = StyleSheet.create({
     bottom: 24,
     right: 24,
     backgroundColor: '#007AFF',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 70,
+    height: 70,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
@@ -90,4 +102,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
+  helpButton: {
+    padding: 15,
+    position: 'absolute',
+  }
 });

@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.llMon'
+    namespace 'com.ddvxx.llMon'
     defaultConfig {
-        applicationId 'com.anonymous.llMon'
+        applicationId 'com.ddvxx.llMon'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

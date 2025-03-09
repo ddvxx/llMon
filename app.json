@@ -4,7 +4,7 @@
     "slug": "llMon",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logollMon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,11 +16,8 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logollMon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.anonymous.llMon"
+      "icon": "./assets/images/icon.png",
+      "package": "com.ddvxx.llMon"
     },
     "web": {
       "bundler": "metro",
@@ -33,8 +30,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/logollMon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "imageWidth": 150,
           "backgroundColor": "#ffffff"
         }
       ]
@@ -49,6 +45,7 @@
       "eas": {
         "projectId": "0b5c31f4-a6a6-4e79-951a-1564e5e66db2"
       }
-    }
+    },
+    "owner": "davexpertyt"
   }
 }
