@@ -1,6 +1,6 @@
 # llMon
 
-![llMon Logo](https://via.placeholder.com/150)
+![llMon Logo](https://github.com/ddvxx/llMon/blob/master/assets/images/logollMon.png)
 
 **llMon** is an Android app (soon on iOS too), in which you can load language models locally on your device and chat with them. Thanks to the locally saved chat logs and context, you can have a nice experience with your chatbots without any kind of connection. This application was made for investigation and entertainment purposes. Currently working in some new functionalities like internet search or RAG to improve the models responses accuracy. 
 Any contribution and fork to the code will be welcomed.
