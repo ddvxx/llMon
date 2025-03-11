@@ -6,7 +6,7 @@
 Any contribution and fork to the code will be welcomed.
 
 ## Installation and Usage
-1. Download the app from Play Store.
+1. Download the [app](https://github.com/ddvxx/llMon/blob/master/llMon.apk).
 2. Open it and add models via the (+) button avaliable in the first screen
 3. To download compatible models (only .gguf extension), you can search them in [HuggingFace](https://huggingface.co/models?library=gguf) or any compatible repositories online.
 4. Once downloaded open the chat, wait for the model to load and Enjoy!.
