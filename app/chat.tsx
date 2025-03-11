@@ -21,7 +21,7 @@ export default function ChatScreen(){
   const flatListRef = useRef<FlatList<Message>>(null);
   
   const stopWords = ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>', '<|im_end|>', '<|EOT|>', '<|END_OF_TURN_TOKEN|>', 
-                    '<|end_of_turn|>', '<|endoftext|>']
+                    '<|end_of_turn|>', '<|endoftext|>', '< | end_of_sentence | >', '<|end_of_sentence|>']
 
   const CHATS_DIRECTORY = `${FileSystem.documentDirectory}chats/`;
   const CHAT_FILE_PATH = CHATS_DIRECTORY + params.model + '_chat.json';
